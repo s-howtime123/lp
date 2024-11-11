@@ -1,0 +1,105 @@
+package spos;
+
+import java.util.Scanner;
+
+class Process1 {
+    int pname;
+    int bt; // burst time
+    float wt; // waiting time
+    float st; // start time
+    float ft; // finish time
+    float tat; // turnaround time
+    int rt; // remaining time
+    int at; // arrival time
+
+    public Process1(int a, int b) {
+        at = a;
+        bt = b;
+        rt = b; // initially, remaining time is equal to burst time
+    }
+}
+
+public class RoundRobin {
+    int n;
+    int quantum;
+    float awt = 0, atat = 0;
+    int completeProcess = 0, ct = 0; // ct is the current time
+
+    void work() {
+        int a, b;
+        
+        Scanner sc = new Scanner(System.in);
+        System.out.println("Enter the number of processes:");
+        n = sc.nextInt();
+        System.out.println("Enter the time quantum:");
+        quantum = sc.nextInt();
+        
+        Process1[] P = new Process1[n];
+        for (int i = 0; i < n; i++) {
+            System.out.println("Enter the arrival time and burst time for process " + (i + 1) + ":");
+            a = sc.nextInt();
+            b = sc.nextInt();
+            P[i] = new Process1(a, b);
+            P[i].pname = (i + 1);
+        }
+
+        // Sort processes by arrival time (ascending order)
+        for (int i = 0; i < n - 1; i++) {
+            for (int j = i + 1; j < n; j++) {
+                if (P[i].at > P[j].at) {
+                    Process1 temp = P[i];
+                    P[i] = P[j];
+                    P[j] = temp;
+                }
+            }
+        }
+
+        // Round Robin scheduling
+        while (completeProcess < n) {
+            boolean executed = false;
+            for (int i = 0; i < n; i++) {
+                if (P[i].at <= ct && P[i].rt > 0) { // process is available and has remaining time
+                    executed = true;
+                    if (P[i].rt == P[i].bt) {
+                        P[i].st = ct; // process starts for the first time
+                    }
+                    
+                    if (P[i].rt > quantum) {
+                        P[i].rt -= quantum;
+                        ct += quantum;
+                    } else {
+                        ct += P[i].rt;
+                        P[i].ft = ct;
+                        P[i].wt = P[i].ft - P[i].at - P[i].bt;
+                        P[i].tat = P[i].wt + P[i].bt;
+                        P[i].rt = 0;
+                        completeProcess++;
+                    }
+                }
+            }
+            
+            if (!executed) { // If no process was executed, increment time
+                ct++;
+            }
+        }
+        
+        // Display process information
+        System.out.println("Proc\tArrT\tburstT\tWaitT\tTAT\tStart\tFinish");
+        for (int i = 0; i < n; i++) {
+            System.out.println("P" + P[i].pname + "\t" + P[i].at + "\t" + P[i].bt + "\t" + P[i].wt + "\t" + P[i].tat + "\t" + P[i].st + "\t" + P[i].ft);
+            awt += P[i].wt;
+            atat += P[i].tat;
+        }
+        
+        awt /= n;
+        atat /= n;
+        
+        System.out.println("The average waiting time is " + awt);
+        System.out.println("The average turnaround time is " + atat);
+    }
+
+    public static void main(String[] args) {
+        RoundRobin obj1 = new RoundRobin();
+        obj1.work();
+    }
+}

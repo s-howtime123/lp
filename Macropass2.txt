@@ -1,0 +1,101 @@
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+class Macro2 {
+    // Macro Name Table (MNT)
+    private static Map<String, Integer> MNT = new HashMap<>(); // Macro Name -> MDT Start Index
+
+    // Macro Definition Table (MDT)
+    private static List<String> MDT = new ArrayList<>(); // Each entry is a line in a macro
+
+    // Argument List Array (ALA)
+    private static Map<String, Integer> ALA = new HashMap<>(); // Maps arguments to their unique placeholders (#1, #2, etc.)
+
+    // Initialize MNT, MDT, and ALA based on Pass-I output
+    private static void initializeTables() {
+        // Initialize ALA
+        ALA.put("&X", 1);
+        ALA.put("&Y", 2);
+        ALA.put("&A", 3);
+        ALA.put("&B", 4);
+        ALA.put("&P", 1);
+        ALA.put("&Q", 2);
+        ALA.put("&U", 3);
+        ALA.put("&V", 4);
+
+        // Initialize MNT
+        MNT.put("M1", 0);
+        MNT.put("M2", 5);
+
+        // Initialize MDT
+        MDT.add("MOVER #3, #1"); // M1: Line 1
+        MDT.add("ADD #3, ='1'"); // M1: Line 2
+        MDT.add("MOVER #4, #2"); // M1: Line 3
+        MDT.add("ADD #4, ='5'"); // M1: Line 4
+        MDT.add("MEND");          // End of M1
+        MDT.add("MOVER #3, #1");  // M2: Line 1
+        MDT.add("MOVER #4, #2");  // M2: Line 2
+        MDT.add("ADD #3, ='15'"); // M2: Line 3
+        MDT.add("ADD #4, ='10'"); // M2: Line 4
+        MDT.add("MEND");          // End of M2
+    }
+
+    // Process Pass-II to expand macros and generate machine code
+    public static List<String> processPassII(List<String> inputCode) {
+        List<String> outputCode = new ArrayList<>();
+
+        for (String line : inputCode) {
+            String[] tokens = line.split("\\s+");
+            String macroName = tokens[0];
+
+            if (MNT.containsKey(macroName)) {
+                // If it's a macro call, expand it
+                int mdtIndex = MNT.get(macroName);
+                Map<String, String> argumentArray = new HashMap<>();
+
+                // Populate Argument Array (AA) based on actual arguments passed in macro call
+                for (int i = 1; i < tokens.length; i++) {
+                    argumentArray.put("#" + i, tokens[i]);
+                }
+
+                // Expand macro from MDT
+                while (!MDT.get(mdtIndex).equals("MEND")) {
+                    String macroLine = MDT.get(mdtIndex);
+                    for (Map.Entry<String, String> entry : argumentArray.entrySet()) {
+                        // Replace placeholders with actual arguments
+                        macroLine = macroLine.replace(entry.getKey(), entry.getValue());
+                    }
+                    outputCode.add(macroLine);
+                    mdtIndex++;
+                }
+            } else {
+                // Add non-macro lines (like START and END) directly
+                outputCode.add(line);
+            }
+        }
+
+        return outputCode;
+    }
+
+    public static void main(String[] args) {
+        initializeTables();
+
+        // Example Input Code containing macros and macro calls
+        List<String> inputCode = new ArrayList<>();
+        inputCode.add("START 100");
+        inputCode.add("M1 10, 20, CREG"); // M1 with arguments
+        inputCode.add("M2 100, 200, AREG, BREG"); // M2 with arguments
+        inputCode.add("END");
+
+        // Process Pass-II to generate expanded code
+        List<String> outputCode = processPassII(inputCode);
+
+        // Display the expanded code
+        System.out.println("Expanded Machine Code:");
+        for (String line : outputCode) {
+            System.out.println(line);
+        }
+    }
+}
